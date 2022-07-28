@@ -19,7 +19,9 @@ fn main() {
         .output_console()
         .build();
 
-    simple_log::new(config).unwrap();
+    if let Err(..) = simple_log::new(config) {
+        println!("Failed to initialize logger");
+    }
 
     loop {
         let res = handle_usb_switch_logic(&mut is_connected);
@@ -61,35 +63,45 @@ fn change_keyboard_layout(signal: &Signal) -> std::result::Result<(), &'static s
     match signal {
         Signal::ChangeAzerty => {
             let command = "/usr/bin/setxkbmap fr";
-            let output = Command::new("/bin/sh")
-                .arg("-c")
-                .arg(command)
-                .output()
-                .expect("Failed to execute process");
-            if output.status.success() {
-                simple_log::info!("Successfully changed keyboard layout to azerty");
-            } else {
-                simple_log::error!("{}", String::from_utf8_lossy(&output.stderr));
+            let output = Command::new("/bin/sh").arg("-c").arg(command).output();
 
-                return Err("Failed to change keyboard layout to azerty");
+            match output {
+                Err(str) => {
+                    simple_log::error!("{}", str);
+                    return Err("Failed to change keyboard layout");
+                }
+                Ok(out) => {
+                    if out.status.success() {
+                        simple_log::info!("Successfully changed keyboard layout to azerty");
+                    } else {
+                        simple_log::error!("{}", String::from_utf8_lossy(&out.stderr));
+                        return Err("Failed to change keyboard layout to azerty");
+                    }
+                }
             }
         }
+
         Signal::ChangeQwerty => {
             let command = "/usr/bin/setxkbmap us";
-            let output = Command::new("/bin/sh")
-                .arg("-c")
-                .arg(command)
-                .output()
-                .expect("Failed to execute process");
-            if output.status.success() {
-                simple_log::info!("Successfully changed keyboard layout to qwerty");
-            } else {
-                simple_log::error!("{}", String::from_utf8_lossy(&output.stderr));
+            let output = Command::new("/bin/sh").arg("-c").arg(command).output();
 
-                return Err("Failed to change keyboard layout to qwerty");
+            match output {
+                Err(str) => {
+                    simple_log::error!("{}", str);
+                    return Err("Failed to change keyboard layout");
+                }
+                Ok(out) => {
+                    if out.status.success() {
+                        simple_log::info!("Successfully changed keyboard layout to azerty");
+                    } else {
+                        simple_log::error!("{}", String::from_utf8_lossy(&out.stderr));
+                        return Err("Failed to change keyboard layout to azerty");
+                    }
+                }
             }
         }
-        _ => {}
+
+        Signal::NothingChanged => {}
     }
     Ok(())
 }
@@ -108,11 +120,17 @@ fn handle_usb_switch_logic(is_connected: &mut bool) -> std::result::Result<Signa
     let mut found = false;
 
     devices.iter().for_each(|device| {
-        let desc = device.device_descriptor().unwrap();
-        let id = format!("{:04x}:{:04x}", desc.vendor_id(), desc.product_id());
-
-        if id == target_id {
-            found = true;
+        let desc = device.device_descriptor();
+        match desc {
+            Ok(desc) => {
+                let id = format!("{:04x}:{:04x}", desc.vendor_id(), desc.product_id());
+                if id == target_id {
+                    found = true;
+                }
+            }
+            Err(str) => {
+                simple_log::error!("{}", str);
+            }
         }
     });
 
