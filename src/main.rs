@@ -13,7 +13,7 @@ fn main() {
     let mut is_connected = false;
     let mut last_signal = Signal::NothingChanged;
     let config = LogConfigBuilder::builder()
-        .size(1 * 100)
+        .size(100)
         .roll_count(10)
         .level("debug")
         .output_console()
@@ -38,13 +38,11 @@ fn main() {
         if signal != last_signal {
             let res_change = change_keyboard_layout(&signal);
 
-            match res_change {
-                Err(str) => {
-                    simple_log::error!("{}", str);
-                    continue;
-                }
-                Ok(_) => {}
+            if let Err(str) = res_change {
+                simple_log::error!("{}", str);
+                continue;
             }
+
             last_signal = signal;
         }
         std::thread::sleep(std::time::Duration::from_millis(500));
@@ -118,13 +116,13 @@ fn handle_usb_switch_logic(is_connected: &mut bool) -> std::result::Result<Signa
         }
     });
 
-    if found == true && *is_connected == false {
+    if found && !(*is_connected) {
         *is_connected = true;
 
         return Ok(Signal::ChangeQwerty);
     }
 
-    if found == false && *is_connected == true {
+    if !found && *is_connected {
         *is_connected = false;
 
         return Ok(Signal::ChangeAzerty);
