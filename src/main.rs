@@ -47,6 +47,7 @@ fn main() {
             }
             last_signal = signal;
         }
+        std::thread::sleep(std::time::Duration::from_millis(500));
     }
 }
 
