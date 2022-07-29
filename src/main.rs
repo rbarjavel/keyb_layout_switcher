@@ -163,3 +163,31 @@ fn get_usb_devices() -> std::result::Result<rusb::DeviceList<rusb::Context>, &'s
 
     Ok(devices)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_change_keyboard_layout() {
+        let res = change_keyboard_layout(&Signal::ChangeAzerty);
+        assert!(res.is_ok());
+        let res = change_keyboard_layout(&Signal::ChangeQwerty);
+        assert!(res.is_ok());
+        let res = change_keyboard_layout(&Signal::NothingChanged);
+        assert!(res.is_ok());
+    }
+
+    #[test]
+    fn test_handle_usb_switch_logic() {
+        let mut is_connected = false;
+        let res = handle_usb_switch_logic(&mut is_connected);
+        assert!(res.is_ok());
+    }
+
+    #[test]
+    fn test_get_usb_devices() {
+        let res = get_usb_devices();
+        assert!(res.is_ok());
+    }
+}
